@@ -1,42 +1,84 @@
 using System.Globalization;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class DrivingDebugHUD : MonoBehaviour
 {
-    [Header("References")]
+    [Header("Data References")]
     [SerializeField] private CarController carController;
     [SerializeField] private CarSensors carSensors;
 
-    [Header("HUD")]
-    [SerializeField] private bool showHud = true;
-    [SerializeField] private Vector2 hudPosition = new Vector2(12f, 12f);
-    [SerializeField] private Vector2 hudSize = new Vector2(420f, 170f);
+    [Header("UI Text References")]
+    [SerializeField] private Text modeText;
+    [SerializeField] private Text steerText;
+    [SerializeField] private Text throttleText;
+    [SerializeField] private Text speedText;
+    [SerializeField] private Text sensorsText;
 
-    [Header("Debug Logging")]
-    [SerializeField] private bool enablePeriodicDebugLog = true;
+    [Header("Options")]
+    [SerializeField] private bool hidePanelWhenMissingReferences = true;
+    [SerializeField] private GameObject panelRoot;
+
+    [Header("Optional Debug Logs")]
+    [SerializeField] private bool enablePeriodicDebugLog;
     [SerializeField] private float debugLogIntervalSeconds = 1f;
 
-    private GUIStyle boxStyle;
-    private GUIStyle textStyle;
     private float nextDebugLogTime;
 
-    private void Awake()
+    private void Update()
     {
-        boxStyle = new GUIStyle(GUI.skin.box)
-        {
-            alignment = TextAnchor.UpperLeft,
-            padding = new RectOffset(10, 10, 10, 10),
-            fontSize = 12
-        };
+        bool hasReferences = carController != null && carSensors != null;
 
-        textStyle = new GUIStyle(GUI.skin.label)
+        if (panelRoot != null && hidePanelWhenMissingReferences)
         {
-            fontSize = 13,
-            richText = true
-        };
+            panelRoot.SetActive(hasReferences);
+        }
+
+        if (!hasReferences)
+        {
+            return;
+        }
+
+        UpdateUiTexts();
+        MaybeWritePeriodicLog();
     }
 
-    private void Update()
+    private void UpdateUiTexts()
+    {
+        if (modeText != null)
+        {
+            modeText.text = "Mode: " + carController.CurrentControlMode;
+        }
+
+        if (steerText != null)
+        {
+            steerText.text = "Steer: " + carController.CurrentSteeringInput.ToString("F3", CultureInfo.InvariantCulture);
+        }
+
+        if (throttleText != null)
+        {
+            throttleText.text = "Throttle: " + carController.CurrentThrottleInput.ToString("F3", CultureInfo.InvariantCulture);
+        }
+
+        if (speedText != null)
+        {
+            speedText.text = "Speed: " + carController.CurrentSpeed.ToString("F3", CultureInfo.InvariantCulture);
+        }
+
+        if (sensorsText != null)
+        {
+            sensorsText.text = string.Format(
+                CultureInfo.InvariantCulture,
+                "Sensors F/FL/L/FR/R: {0:F3}, {1:F3}, {2:F3}, {3:F3}, {4:F3}",
+                carSensors.front,
+                carSensors.frontLeft,
+                carSensors.left,
+                carSensors.frontRight,
+                carSensors.right);
+        }
+    }
+
+    private void MaybeWritePeriodicLog()
     {
         if (!enablePeriodicDebugLog)
         {
@@ -49,59 +91,17 @@ public class DrivingDebugHUD : MonoBehaviour
         }
 
         nextDebugLogTime = Time.time + Mathf.Max(0.1f, debugLogIntervalSeconds);
-        Debug.Log($"[HUD] {BuildStateLine()} | sensors={BuildSensorLine()}");
-    }
-
-    private void OnGUI()
-    {
-        if (!showHud)
-        {
-            return;
-        }
-
-        Rect panelRect = new Rect(hudPosition.x, hudPosition.y, hudSize.x, hudSize.y);
-        GUILayout.BeginArea(panelRect, boxStyle);
-
-        GUILayout.Label("<b>Driving Debug HUD</b>", textStyle);
-        GUILayout.Space(4f);
-
-        GUILayout.Label(BuildStateLine(), textStyle);
-        GUILayout.Space(2f);
-        GUILayout.Label("Sensors (F, FL, L, FR, R): " + BuildSensorLine(), textStyle);
-
-        GUILayout.EndArea();
-    }
-
-    private string BuildStateLine()
-    {
-        if (carController == null)
-        {
-            return "Controller missing";
-        }
-
-        return string.Format(
+        Debug.Log(string.Format(
             CultureInfo.InvariantCulture,
-            "Mode: <b>{0}</b> | Steer: {1:F3} | Throttle: {2:F3} | Speed: {3:F3}",
+            "[HUD] mode={0}, steer={1:F3}, throttle={2:F3}, speed={3:F3}, sensors={4:F3}|{5:F3}|{6:F3}|{7:F3}|{8:F3}",
             carController.CurrentControlMode,
             carController.CurrentSteeringInput,
             carController.CurrentThrottleInput,
-            carController.CurrentSpeed);
-    }
-
-    private string BuildSensorLine()
-    {
-        if (carSensors == null)
-        {
-            return "(missing)";
-        }
-
-        return string.Format(
-            CultureInfo.InvariantCulture,
-            "{0:F3}, {1:F3}, {2:F3}, {3:F3}, {4:F3}",
+            carController.CurrentSpeed,
             carSensors.front,
             carSensors.frontLeft,
             carSensors.left,
             carSensors.frontRight,
-            carSensors.right);
+            carSensors.right));
     }
 }
