@@ -30,6 +30,7 @@ public class NeuralNetwork
 
         random = new Random();
 
+        // Allocate weights and biases for each layer connection.
         weightsInputHidden1 = new float[inputSize, hidden1Size];
         weightsHidden1Hidden2 = new float[hidden1Size, hidden2Size];
         weightsHidden2Output = new float[hidden2Size, outputSize];
@@ -47,44 +48,27 @@ public class NeuralNetwork
 
     private void InitialiseWeights()
     {
+        // Fill all weights with small random values.
         for (int i = 0; i < inputSize; i++)
-        {
             for (int j = 0; j < hidden1Size; j++)
-            {
                 weightsInputHidden1[i, j] = RandomWeight();
-            }
-        }
 
         for (int i = 0; i < hidden1Size; i++)
-        {
             for (int j = 0; j < hidden2Size; j++)
-            {
                 weightsHidden1Hidden2[i, j] = RandomWeight();
-            }
-        }
 
         for (int i = 0; i < hidden2Size; i++)
-        {
             for (int j = 0; j < outputSize; j++)
-            {
                 weightsHidden2Output[i, j] = RandomWeight();
-            }
-        }
 
         for (int i = 0; i < hidden1Size; i++)
-        {
             biasHidden1[i] = RandomWeight();
-        }
 
         for (int i = 0; i < hidden2Size; i++)
-        {
             biasHidden2[i] = RandomWeight();
-        }
 
         for (int i = 0; i < outputSize; i++)
-        {
             biasOutput[i] = RandomWeight();
-        }
     }
 
     private float RandomWeight()
@@ -99,43 +83,33 @@ public class NeuralNetwork
             throw new ArgumentException($"Expected {inputSize} inputs, got {inputs.Length}");
         }
 
-        // Input -> Hidden 1
+        // Layer 1 forward pass.
         for (int j = 0; j < hidden1Size; j++)
         {
             float sum = biasHidden1[j];
-
             for (int i = 0; i < inputSize; i++)
-            {
                 sum += inputs[i] * weightsInputHidden1[i, j];
-            }
 
             hiddenLayer1[j] = Sigmoid(sum);
         }
 
-        // Hidden 1 -> Hidden 2
+        // Layer 2 forward pass.
         for (int j = 0; j < hidden2Size; j++)
         {
             float sum = biasHidden2[j];
-
             for (int i = 0; i < hidden1Size; i++)
-            {
                 sum += hiddenLayer1[i] * weightsHidden1Hidden2[i, j];
-            }
 
             hiddenLayer2[j] = Sigmoid(sum);
         }
 
-        // Hidden 2 -> Output
+        // Output layer forward pass.
         for (int j = 0; j < outputSize; j++)
         {
             float sum = biasOutput[j];
-
             for (int i = 0; i < hidden2Size; i++)
-            {
                 sum += hiddenLayer2[i] * weightsHidden2Output[i, j];
-            }
 
-            // tanh is nice here because steer/throttle can be in -1 to 1 range
             outputLayer[j] = Tanh(sum);
         }
 
@@ -146,20 +120,19 @@ public class NeuralNetwork
 
     public float Train(float[] inputs, float[] expectedOutputs, float learningRate)
     {
+        // First get current prediction.
         float[] predictedOutputs = FeedForward(inputs);
 
         float[] outputErrors = new float[outputSize];
         float[] outputDeltas = new float[outputSize];
-
         float[] hidden2Errors = new float[hidden2Size];
         float[] hidden2Deltas = new float[hidden2Size];
-
         float[] hidden1Errors = new float[hidden1Size];
         float[] hidden1Deltas = new float[hidden1Size];
 
         float sampleError = 0f;
 
-        // Output layer error
+        // Output error + delta.
         for (int i = 0; i < outputSize; i++)
         {
             float error = expectedOutputs[i] - predictedOutputs[i];
@@ -168,100 +141,64 @@ public class NeuralNetwork
             sampleError += error * error;
         }
 
-        // Hidden 2 error
+        // Backprop into hidden layer 2.
         for (int i = 0; i < hidden2Size; i++)
         {
             float error = 0f;
-
             for (int j = 0; j < outputSize; j++)
-            {
                 error += outputDeltas[j] * weightsHidden2Output[i, j];
-            }
 
             hidden2Errors[i] = error;
             hidden2Deltas[i] = error * SigmoidDerivative(hiddenLayer2[i]);
         }
 
-        // Hidden 1 error
+        // Backprop into hidden layer 1.
         for (int i = 0; i < hidden1Size; i++)
         {
             float error = 0f;
-
             for (int j = 0; j < hidden2Size; j++)
-            {
                 error += hidden2Deltas[j] * weightsHidden1Hidden2[i, j];
-            }
 
             hidden1Errors[i] = error;
             hidden1Deltas[i] = error * SigmoidDerivative(hiddenLayer1[i]);
         }
 
-        // Update Hidden 2 -> Output weights
+        // Gradient step: hidden2 -> output weights.
         for (int i = 0; i < hidden2Size; i++)
-        {
             for (int j = 0; j < outputSize; j++)
-            {
                 weightsHidden2Output[i, j] += learningRate * outputDeltas[j] * hiddenLayer2[i];
-            }
-        }
 
-        // Update Output biases
+        // Gradient step: output biases.
         for (int i = 0; i < outputSize; i++)
-        {
             biasOutput[i] += learningRate * outputDeltas[i];
-        }
 
-        // Update Hidden 1 -> Hidden 2 weights
+        // Gradient step: hidden1 -> hidden2 weights.
         for (int i = 0; i < hidden1Size; i++)
-        {
             for (int j = 0; j < hidden2Size; j++)
-            {
                 weightsHidden1Hidden2[i, j] += learningRate * hidden2Deltas[j] * hiddenLayer1[i];
-            }
-        }
 
-        // Update Hidden 2 biases
+        // Gradient step: hidden2 biases.
         for (int i = 0; i < hidden2Size; i++)
-        {
             biasHidden2[i] += learningRate * hidden2Deltas[i];
-        }
 
-        // Update Input -> Hidden 1 weights
+        // Gradient step: input -> hidden1 weights.
         for (int i = 0; i < inputSize; i++)
-        {
             for (int j = 0; j < hidden1Size; j++)
-            {
                 weightsInputHidden1[i, j] += learningRate * hidden1Deltas[j] * inputs[i];
-            }
-        }
 
-        // Update Hidden 1 biases
+        // Gradient step: hidden1 biases.
         for (int i = 0; i < hidden1Size; i++)
-        {
             biasHidden1[i] += learningRate * hidden1Deltas[i];
-        }
 
-        // MSE for this sample
+        // Return per-sample mean squared error.
         return sampleError / outputSize;
     }
 
-    private float Sigmoid(float x)
-    {
-        return 1f / (1f + (float)Math.Exp(-x));
-    }
+    private float Sigmoid(float x) => 1f / (1f + (float)Math.Exp(-x));
 
-    private float SigmoidDerivative(float output)
-    {
-        return output * (1f - output);
-    }
+    private float SigmoidDerivative(float output) => output * (1f - output);
 
-    private float Tanh(float x)
-    {
-        return (float)Math.Tanh(x);
-    }
+    private float Tanh(float x) => (float)Math.Tanh(x);
 
-    private float TanhDerivative(float output)
-    {
-        return 1f - (output * output);
-    }
+    private float TanhDerivative(float output) => 1f - (output * output);
 }

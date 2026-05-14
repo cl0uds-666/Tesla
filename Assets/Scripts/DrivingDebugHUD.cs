@@ -29,6 +29,7 @@ public class DrivingDebugHUD : MonoBehaviour
     {
         bool hasReferences = carController != null && carSensors != null;
 
+        // Hide HUD if key references are missing.
         if (panelRoot != null && hidePanelWhenMissingReferences)
         {
             panelRoot.SetActive(hasReferences);
@@ -45,25 +46,18 @@ public class DrivingDebugHUD : MonoBehaviour
 
     private void UpdateUiTexts()
     {
+        // Keep text updates separate so Update stays clean.
         if (modeText != null)
-        {
             modeText.text = "Mode: " + carController.CurrentControlMode;
-        }
 
         if (steerText != null)
-        {
             steerText.text = "Steer: " + carController.CurrentSteeringInput.ToString("F3", CultureInfo.InvariantCulture);
-        }
 
         if (throttleText != null)
-        {
             throttleText.text = "Throttle: " + carController.CurrentThrottleInput.ToString("F3", CultureInfo.InvariantCulture);
-        }
 
         if (speedText != null)
-        {
             speedText.text = "Speed: " + carController.CurrentSpeed.ToString("F3", CultureInfo.InvariantCulture);
-        }
 
         if (sensorsText != null)
         {
@@ -85,6 +79,7 @@ public class DrivingDebugHUD : MonoBehaviour
             return;
         }
 
+        // Wait until next log window.
         if (Time.time < nextDebugLogTime)
         {
             return;

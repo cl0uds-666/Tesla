@@ -54,6 +54,7 @@ public class NeuralTrainer : MonoBehaviour
 
         List<TrainingSample> trainingSamples = dataLoader.samples;
 
+        // Optionally reduce straight-driving dominance.
         if (balanceStraightSamples)
         {
             trainingSamples = BuildBalancedTrainingSet(dataLoader.samples);
@@ -65,11 +66,13 @@ public class NeuralTrainer : MonoBehaviour
             }
         }
 
+        // Fresh network for each training run.
         network = new NeuralNetwork(inputSize, hidden1Size, hidden2Size, outputSize);
         epochErrors.Clear();
 
         Debug.Log("Training started...");
 
+        // Main training loop.
         for (int epoch = 0; epoch < epochs; epoch++)
         {
             float totalError = 0f;
@@ -83,6 +86,7 @@ public class NeuralTrainer : MonoBehaviour
             float averageError = totalError / trainingSamples.Count;
             epochErrors.Add(averageError);
 
+            // Per-epoch log helps watch convergence.
             Debug.Log($"Epoch {epoch + 1}/{epochs} - Error: {averageError:F6}");
         }
 
@@ -109,12 +113,14 @@ public class NeuralTrainer : MonoBehaviour
             float steer = sample.outputs[0];
             bool isStraight = Mathf.Abs(steer) <= straightSteeringThreshold;
 
+            // Keep all turning rows.
             if (!isStraight)
             {
                 balancedSamples.Add(sample);
                 continue;
             }
 
+            // Keep only a random subset of straight rows.
             if (Random.value <= straightSampleKeepPercentage)
             {
                 balancedSamples.Add(sample);
@@ -134,6 +140,7 @@ public class NeuralTrainer : MonoBehaviour
 
     private string GetSteeringDistributionSummary(List<TrainingSample> samples)
     {
+        // Pull steering values only from valid rows.
         List<float> steeringValues = samples
             .Where(sample => sample.outputs != null && sample.outputs.Length > 0)
             .Select(sample => sample.outputs[0])
@@ -144,6 +151,7 @@ public class NeuralTrainer : MonoBehaviour
             return "No valid steering samples.";
         }
 
+        // Count rough steering buckets for quick diagnostics.
         int hardLeft = steeringValues.Count(value => value < -0.3f);
         int slightLeft = steeringValues.Count(value => value >= -0.3f && value < -straightSteeringThreshold);
         int straight = steeringValues.Count(value => Mathf.Abs(value) <= straightSteeringThreshold);
@@ -164,6 +172,7 @@ public class NeuralTrainer : MonoBehaviour
         StringBuilder sb = new StringBuilder();
         sb.AppendLine("epoch,error");
 
+        // Save one error value per epoch.
         for (int i = 0; i < epochErrors.Count; i++)
         {
             sb.AppendLine($"{i + 1},{epochErrors[i]}");
