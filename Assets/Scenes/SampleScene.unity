@@ -946,6 +946,74 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 43433053}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &201659701
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 201659704}
+  - component: {fileID: 201659703}
+  - component: {fileID: 201659702}
+  m_Layer: 0
+  m_Name: Trainer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &201659702
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 201659701}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9177c824e031001489e7ef48fdee5c2e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fileName: driving_data.csv
+  loadOnStart: 1
+--- !u!114 &201659703
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 201659701}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23531ee3a0ce1a64db6c5a71760da3d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  dataLoader: {fileID: 201659702}
+  inputSize: 5
+  hidden1Size: 8
+  hidden2Size: 6
+  outputSize: 2
+  learningRate: 0.05
+  epochs: 200
+  trainOnStart: 1
+  epochErrors: []
+--- !u!4 &201659704
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 201659701}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -17.363768, y: 25.422108, z: 86.2064}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &247820456
 GameObject:
   m_ObjectHideFlags: 0
@@ -2525,6 +2593,7 @@ GameObject:
   - component: {fileID: 822030418}
   - component: {fileID: 822030421}
   - component: {fileID: 822030422}
+  - component: {fileID: 822030423}
   m_Layer: 0
   m_Name: PlayerCar
   m_TagString: Untagged
@@ -2550,6 +2619,7 @@ MonoBehaviour:
   dragOnGround: 2
   turnSpeed: 120
   minSpeedForTurning: 0.5
+  controlMode: 0
 --- !u!54 &822030419
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -2636,6 +2706,22 @@ MonoBehaviour:
   recordInterval: 0.1
   writeOnlyWhenMoving: 1
   minSpeedToRecord: 0.25
+--- !u!114 &822030423
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 822030417}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd9f5a620533fb64fb33e6c228c6dae4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  carSensors: {fileID: 822030421}
+  carController: {fileID: 822030418}
+  neuralTrainer: {fileID: 201659703}
+  useAIOnStart: 1
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -6455,3 +6541,4 @@ SceneRoots:
   - {fileID: 832575519}
   - {fileID: 403922409}
   - {fileID: 822030420}
+  - {fileID: 201659704}
