@@ -99,7 +99,7 @@ public class NeuralNetwork
             throw new ArgumentException($"Expected {inputSize} inputs, got {inputs.Length}");
         }
 
-        // Input -> Hidden 1
+        // Forward pass: input layer into hidden layer 1.
         for (int j = 0; j < hidden1Size; j++)
         {
             float sum = biasHidden1[j];
@@ -112,7 +112,7 @@ public class NeuralNetwork
             hiddenLayer1[j] = Sigmoid(sum);
         }
 
-        // Hidden 1 -> Hidden 2
+        // Forward pass: hidden layer 1 into hidden layer 2.
         for (int j = 0; j < hidden2Size; j++)
         {
             float sum = biasHidden2[j];
@@ -125,7 +125,7 @@ public class NeuralNetwork
             hiddenLayer2[j] = Sigmoid(sum);
         }
 
-        // Hidden 2 -> Output
+        // Forward pass: hidden layer 2 into output layer.
         for (int j = 0; j < outputSize; j++)
         {
             float sum = biasOutput[j];
@@ -135,7 +135,7 @@ public class NeuralNetwork
                 sum += hiddenLayer2[i] * weightsHidden2Output[i, j];
             }
 
-            // tanh is nice here because steer/throttle can be in -1 to 1 range
+            // tanh keeps steering/throttle naturally in the -1..1 range.
             outputLayer[j] = Tanh(sum);
         }
 
@@ -159,7 +159,7 @@ public class NeuralNetwork
 
         float sampleError = 0f;
 
-        // Output layer error
+        // Backprop step 1: output error and deltas.
         for (int i = 0; i < outputSize; i++)
         {
             float error = expectedOutputs[i] - predictedOutputs[i];
@@ -168,7 +168,7 @@ public class NeuralNetwork
             sampleError += error * error;
         }
 
-        // Hidden 2 error
+        // Backprop step 2: move error back to hidden layer 2.
         for (int i = 0; i < hidden2Size; i++)
         {
             float error = 0f;
@@ -182,7 +182,7 @@ public class NeuralNetwork
             hidden2Deltas[i] = error * SigmoidDerivative(hiddenLayer2[i]);
         }
 
-        // Hidden 1 error
+        // Backprop step 3: move error back to hidden layer 1.
         for (int i = 0; i < hidden1Size; i++)
         {
             float error = 0f;
@@ -196,7 +196,7 @@ public class NeuralNetwork
             hidden1Deltas[i] = error * SigmoidDerivative(hiddenLayer1[i]);
         }
 
-        // Update Hidden 2 -> Output weights
+        // Gradient update: hidden2 -> output weights.
         for (int i = 0; i < hidden2Size; i++)
         {
             for (int j = 0; j < outputSize; j++)
@@ -205,13 +205,13 @@ public class NeuralNetwork
             }
         }
 
-        // Update Output biases
+        // Gradient update: output biases.
         for (int i = 0; i < outputSize; i++)
         {
             biasOutput[i] += learningRate * outputDeltas[i];
         }
 
-        // Update Hidden 1 -> Hidden 2 weights
+        // Gradient update: hidden1 -> hidden2 weights.
         for (int i = 0; i < hidden1Size; i++)
         {
             for (int j = 0; j < hidden2Size; j++)
@@ -220,13 +220,13 @@ public class NeuralNetwork
             }
         }
 
-        // Update Hidden 2 biases
+        // Gradient update: hidden2 biases.
         for (int i = 0; i < hidden2Size; i++)
         {
             biasHidden2[i] += learningRate * hidden2Deltas[i];
         }
 
-        // Update Input -> Hidden 1 weights
+        // Gradient update: input -> hidden1 weights.
         for (int i = 0; i < inputSize; i++)
         {
             for (int j = 0; j < hidden1Size; j++)
@@ -235,13 +235,13 @@ public class NeuralNetwork
             }
         }
 
-        // Update Hidden 1 biases
+        // Gradient update: hidden1 biases.
         for (int i = 0; i < hidden1Size; i++)
         {
             biasHidden1[i] += learningRate * hidden1Deltas[i];
         }
 
-        // MSE for this sample
+        // Returns per-sample mean squared error.
         return sampleError / outputSize;
     }
 

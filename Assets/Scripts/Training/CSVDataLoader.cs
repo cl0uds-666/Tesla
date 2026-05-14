@@ -3,20 +3,20 @@ using System.Globalization;
 using System.IO;
 using UnityEngine;
 
-// Loads training data from CSV files and converts them into TrainingSample objects
+// Loads CSV driving data and turns each valid row into a TrainingSample.
 public class CSVDataLoader : MonoBehaviour
 {
     [Header("CSV Settings")]
-    [SerializeField] private bool loadOnStart = true; // Automatically load on Start
-    [SerializeField] private bool loadSessionFiles = true; // Load all drive_session_###.csv files
-    [SerializeField] private string sessionFilePattern = "drive_session_*.csv"; // Pattern for per-session files
-    [SerializeField] private string fallbackSingleFileName = "driving_data.csv"; // Legacy file fallback
+    [SerializeField] private bool loadOnStart = true; // Auto-load when play mode starts.
+    [SerializeField] private bool loadSessionFiles = true; // Read every per-session recording file.
+    [SerializeField] private string sessionFilePattern = "drive_session_*.csv"; // File pattern used for session recordings.
+    [SerializeField] private string fallbackSingleFileName = "driving_data.csv"; // Old single-file fallback name.
 
     [Header("Optional Filters")]
-    [SerializeField] private bool includeCollisionRows = true; // If false, rows with collisionFlag=1 are skipped
-    [SerializeField] private bool onlyUseHumanMode = false; // If true, only rows where mode=Human are used
+    [SerializeField] private bool includeCollisionRows = true; // Skip crash rows when this is off.
+    [SerializeField] private bool onlyUseHumanMode = false; // Keep only Human-driving rows.
 
-    public List<TrainingSample> samples = new List<TrainingSample>(); // Stores all loaded samples
+    public List<TrainingSample> samples = new List<TrainingSample>(); // All parsed samples end up here.
 
     private const int LegacyColumnCount = 7;
     private const int MetadataColumnCount = 12;
@@ -157,7 +157,7 @@ public class CSVDataLoader : MonoBehaviour
         float[] inputs = new float[5];
         float[] outputs = new float[2];
 
-        // Inputs remain track-agnostic sensors only (ignore metadata columns)
+        // Only keep the five sensor fields as model inputs.
         int sensorStartIndex = 5;
         for (int j = 0; j < 5; j++)
         {
