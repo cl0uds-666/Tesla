@@ -7,8 +7,8 @@ using UnityEngine;
 public class DrivingDataRecorder : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private CarSensors carSensors;      // Access to current sensor values 
-    [SerializeField] private CarController carController; // Access to player inputs 
+    [SerializeField] private CarSensors carSensors;      // Access to current sensor values
+    [SerializeField] private CarController carController; // Access to player inputs
 
     [Header("Recording")]
     [SerializeField] private bool recordOnPlay = false;   // Start recording automatically
@@ -17,25 +17,26 @@ public class DrivingDataRecorder : MonoBehaviour
     [SerializeField] private bool writeOnlyWhenMoving = true; // Prevent recording when stationary
     [SerializeField] private float minSpeedToRecord = 0.25f;  // Minimum speed required to record
 
-    private string filePath;     // Location of CSV file
-    private bool isRecording;    // Current recording state
-    private float recordTimer;  // Tracks time between samples
+    private const string SessionFilePrefix = "drive_session_";
+    private const string SessionFileExtension = ".csv";
+
+    private string filePath;      // Location of CSV file
+    private string sessionId;     // Session ID stored per sample
+    private bool isRecording;     // Current recording state
+    private bool collisionFlag;   // Whether a collision has happened in this session
+    private float recordTimer;    // Tracks time between samples
 
     private void Start()
     {
-        // Build file path inside Assets folder
-        filePath = Path.Combine(Application.dataPath, "driving_data.csv");
+        filePath = BuildNextSessionFilePath();
+        sessionId = Path.GetFileNameWithoutExtension(filePath);
 
-        // Create file with header if it doesn't exist
-        if (!File.Exists(filePath))
-        {
-            File.WriteAllText(filePath, "front,frontLeft,left,frontRight,right,steer,throttle\n");
-        }
+        File.WriteAllText(filePath, "time,speed,mode,collisionFlag,sessionId,front,frontLeft,left,frontRight,right,steer,throttle\n");
 
         // Set initial recording state
         isRecording = recordOnPlay;
 
-        Debug.Log("CSV Path: " + filePath);
+        Debug.Log($"CSV Path: {filePath}");
     }
 
     private void Update()
@@ -73,9 +74,53 @@ public class DrivingDataRecorder : MonoBehaviour
         }
     }
 
+    private void OnCollisionEnter(Collision collision)
+    {
+        collisionFlag = true;
+    }
+
+    private string BuildNextSessionFilePath()
+    {
+        string assetsPath = Application.dataPath;
+        string[] existingSessionFiles = Directory.GetFiles(
+            assetsPath,
+            $"{SessionFilePrefix}*{SessionFileExtension}",
+            SearchOption.TopDirectoryOnly);
+
+        int maxSessionNumber = 0;
+
+        foreach (string existingFilePath in existingSessionFiles)
+        {
+            string fileName = Path.GetFileNameWithoutExtension(existingFilePath);
+
+            if (!fileName.StartsWith(SessionFilePrefix))
+            {
+                continue;
+            }
+
+            string numericSegment = fileName.Substring(SessionFilePrefix.Length);
+            if (int.TryParse(numericSegment, out int sessionNumber) && sessionNumber > maxSessionNumber)
+            {
+                maxSessionNumber = sessionNumber;
+            }
+        }
+
+        int nextSessionNumber = maxSessionNumber + 1;
+        string nextSessionFileName = $"{SessionFilePrefix}{nextSessionNumber:D3}{SessionFileExtension}";
+
+        return Path.Combine(assetsPath, nextSessionFileName);
+    }
+
     private void WriteSample()
     {
-        StringBuilder sb = new StringBuilder(); 
+        StringBuilder sb = new StringBuilder();
+
+        // Session metadata
+        sb.Append(Time.time.ToString("F4", CultureInfo.InvariantCulture)).Append(",");
+        sb.Append(carController.CurrentSpeed.ToString("F4", CultureInfo.InvariantCulture)).Append(",");
+        sb.Append(carController.CurrentControlMode.ToString()).Append(",");
+        sb.Append(collisionFlag ? "1" : "0").Append(",");
+        sb.Append(sessionId).Append(",");
 
         // Append sensor inputs (formatted to fixed decimal precision)
         sb.Append(carSensors.front.ToString("F4", CultureInfo.InvariantCulture)).Append(",");
