@@ -1,6 +1,6 @@
 using System.Globalization;
+using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class DrivingDebugHUD : MonoBehaviour
 {
@@ -9,11 +9,11 @@ public class DrivingDebugHUD : MonoBehaviour
     [SerializeField] private CarSensors carSensors;
 
     [Header("UI Text References")]
-    [SerializeField] private Text modeText;
-    [SerializeField] private Text steerText;
-    [SerializeField] private Text throttleText;
-    [SerializeField] private Text speedText;
-    [SerializeField] private Text sensorsText;
+    [SerializeField] private TMP_Text modeText;
+    [SerializeField] private TMP_Text steerText;
+    [SerializeField] private TMP_Text throttleText;
+    [SerializeField] private TMP_Text speedText;
+    [SerializeField] private TMP_Text sensorsText;
 
     [Header("Options")]
     [SerializeField] private bool hidePanelWhenMissingReferences = true;
@@ -91,6 +91,7 @@ public class DrivingDebugHUD : MonoBehaviour
         }
 
         nextDebugLogTime = Time.time + Mathf.Max(0.1f, debugLogIntervalSeconds);
+
         Debug.Log(string.Format(
             CultureInfo.InvariantCulture,
             "[HUD] mode={0}, steer={1:F3}, throttle={2:F3}, speed={3:F3}, sensors={4:F3}|{5:F3}|{6:F3}|{7:F3}|{8:F3}",
