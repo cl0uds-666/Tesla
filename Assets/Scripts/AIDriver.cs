@@ -18,9 +18,14 @@ public class AIDriver : MonoBehaviour
         }
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
         if (carController == null || carSensors == null || neuralTrainer == null)
+        {
+            return;
+        }
+
+        if (carController.CurrentControlMode != CarController.ControlMode.AI)
         {
             return;
         }

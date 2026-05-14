@@ -3,6 +3,12 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public class CarController : MonoBehaviour
 {
+    public enum ControlMode
+    {
+        Human,
+        AI
+    }
+
     [Header("Movement")]
     [SerializeField] private float acceleration = 12f;   // Force applied when accelerating
     [SerializeField] private float maxSpeed = 10f;       // Forward speed limit
@@ -17,10 +23,16 @@ public class CarController : MonoBehaviour
 
     private float throttleInput; // Forward/backward input
     private float steeringInput; // Left/right input
+    private float aiThrottleInput;
+    private float aiSteeringInput;
+
+    [Header("Control")]
+    [SerializeField] private ControlMode controlMode = ControlMode.Human;
 
     // Expose inputs so other systems can read them
     public float CurrentThrottleInput => throttleInput;
     public float CurrentSteeringInput => steeringInput;
+    public ControlMode CurrentControlMode => controlMode;
 
     // Forward speed relative to the cars direction
     public float CurrentSpeed => Vector3.Dot(rb.linearVelocity, transform.forward);
@@ -32,9 +44,18 @@ public class CarController : MonoBehaviour
 
     private void Update()
     {
-        // Read raw player input (no smoothing)
-        throttleInput = Input.GetAxisRaw("Vertical");
-        steeringInput = Input.GetAxisRaw("Horizontal");
+        if (controlMode == ControlMode.Human)
+        {
+            // Read raw player input (no smoothing)
+            throttleInput = Input.GetAxisRaw("Vertical");
+            steeringInput = Input.GetAxisRaw("Horizontal");
+        }
+        else
+        {
+            // AI inputs are assigned by AIDriver
+            throttleInput = aiThrottleInput;
+            steeringInput = aiSteeringInput;
+        }
     }
 
     private void FixedUpdate()
@@ -89,5 +110,16 @@ public class CarController : MonoBehaviour
         Vector3 dragForce = -flatVelocity * dragOnGround;
 
         rb.AddForce(dragForce, ForceMode.Acceleration);
+    }
+
+    public void SetControlMode(ControlMode mode)
+    {
+        controlMode = mode;
+    }
+
+    public void SetAIInputs(float steering, float throttle)
+    {
+        aiSteeringInput = Mathf.Clamp(steering, -1f, 1f);
+        aiThrottleInput = Mathf.Clamp(throttle, -1f, 1f);
     }
 }
