@@ -10,31 +10,31 @@ public class CarController : MonoBehaviour
     }
 
     [Header("Movement")]
-    [SerializeField] private float acceleration = 12f;   // Force applied when accelerating
-    [SerializeField] private float maxSpeed = 10f;       // Forward speed limit
-    [SerializeField] private float reverseSpeed = 4f;    // Reverse speed limit
-    [SerializeField] private float dragOnGround = 2f;    // Simulated ground resistance
+    [SerializeField] private float acceleration = 12f; // Push force for throttle input.
+    [SerializeField] private float maxSpeed = 10f; // Max forward speed.
+    [SerializeField] private float reverseSpeed = 4f; // Max reverse speed.
+    [SerializeField] private float dragOnGround = 2f; // Flat drag to stop endless sliding.
 
     [Header("Turning")]
-    [SerializeField] private float turnSpeed = 120f;     // Turning speed 
-    [SerializeField] private float minSpeedForTurning = 0.5f; // Prevents turning when nearly stationary
+    [SerializeField] private float turnSpeed = 120f; // Yaw speed while moving.
+    [SerializeField] private float minSpeedForTurning = 0.5f; // Stops spin-in-place behavior.
 
     private Rigidbody rb;
 
-    private float throttleInput; // Forward/backward input
-    private float steeringInput; // Left/right input
+    private float throttleInput; // Final throttle used by physics.
+    private float steeringInput; // Final steering used by physics.
     private float aiThrottleInput;
     private float aiSteeringInput;
 
     [Header("Control")]
     [SerializeField] private ControlMode controlMode = ControlMode.Human;
 
-    // Expose inputs so other systems can read them
+    // Expose live control values to recorder/HUD.
     public float CurrentThrottleInput => throttleInput;
     public float CurrentSteeringInput => steeringInput;
     public ControlMode CurrentControlMode => controlMode;
 
-    // Forward speed relative to the cars direction
+    // Signed speed in the car's forward axis.
     public float CurrentSpeed => Vector3.Dot(rb.linearVelocity, transform.forward);
 
     private void Awake()
@@ -46,13 +46,13 @@ public class CarController : MonoBehaviour
     {
         if (controlMode == ControlMode.Human)
         {
-            // Read raw player input (no smoothing)
+            // Read player controls directly.
             throttleInput = Input.GetAxisRaw("Vertical");
             steeringInput = Input.GetAxisRaw("Horizontal");
         }
         else
         {
-            // AI inputs are assigned by AIDriver
+            // AI controls come from AIDriver.
             throttleInput = aiThrottleInput;
             steeringInput = aiSteeringInput;
         }
@@ -60,7 +60,6 @@ public class CarController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        // Physics based movement handled in FixedUpdate
         ApplyMovement();
         ApplyTurning();
         ApplyGroundDrag();
@@ -68,13 +67,12 @@ public class CarController : MonoBehaviour
 
     private void ApplyMovement()
     {
-        // Speed in the cars forward direction
         float currentForwardSpeed = Vector3.Dot(rb.linearVelocity, transform.forward);
 
-        // Different speed limits for forward and reverse
+        // Use different speed cap for reverse.
         float allowedMaxSpeed = throttleInput >= 0f ? maxSpeed : reverseSpeed;
 
-        // Only apply force if under speed limit or changing direction
+        // Allow acceleration if under cap or trying to change direction.
         if (Mathf.Abs(currentForwardSpeed) < allowedMaxSpeed || Mathf.Sign(throttleInput) != Mathf.Sign(currentForwardSpeed))
         {
             Vector3 force = transform.forward * throttleInput * acceleration;
@@ -87,13 +85,12 @@ public class CarController : MonoBehaviour
         float currentForwardSpeed = Vector3.Dot(rb.linearVelocity, transform.forward);
         float speedAmount = Mathf.Abs(currentForwardSpeed);
 
-        // Prevent turning when almost stationary
         if (speedAmount < minSpeedForTurning)
         {
             return;
         }
 
-        // Adjust turning based on movement direction (forward vs reverse)
+        // Flip steering while reversing so controls feel natural.
         float direction = Mathf.Sign(currentForwardSpeed);
         float turnAmount = steeringInput * turnSpeed * direction * Time.fixedDeltaTime;
 
@@ -103,12 +100,10 @@ public class CarController : MonoBehaviour
 
     private void ApplyGroundDrag()
     {
-        // Remove vertical movement to only apply drag on the ground plane
+        // Ignore Y so drag only affects ground-plane motion.
         Vector3 flatVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
 
-        // Apply opposing force to simulate friction
         Vector3 dragForce = -flatVelocity * dragOnGround;
-
         rb.AddForce(dragForce, ForceMode.Acceleration);
     }
 
@@ -119,6 +114,7 @@ public class CarController : MonoBehaviour
 
     public void SetAIInputs(float steering, float throttle)
     {
+        // Clamp for safety before applying AI outputs.
         aiSteeringInput = Mathf.Clamp(steering, -1f, 1f);
         aiThrottleInput = Mathf.Clamp(throttle, -1f, 1f);
     }

@@ -3,20 +3,20 @@ using System.Globalization;
 using System.IO;
 using UnityEngine;
 
-// Loads training data from CSV files and converts them into TrainingSample objects
+// Loads CSV rows and turns them into training samples.
 public class CSVDataLoader : MonoBehaviour
 {
     [Header("CSV Settings")]
-    [SerializeField] private bool loadOnStart = true; // Automatically load on Start
-    [SerializeField] private bool loadSessionFiles = true; // Load all drive_session_###.csv files
-    [SerializeField] private string sessionFilePattern = "drive_session_*.csv"; // Pattern for per-session files
-    [SerializeField] private string fallbackSingleFileName = "driving_data.csv"; // Legacy file fallback
+    [SerializeField] private bool loadOnStart = true; // Auto-load data when scene starts.
+    [SerializeField] private bool loadSessionFiles = true; // Prefer numbered session files.
+    [SerializeField] private string sessionFilePattern = "drive_session_*.csv"; // Session search pattern.
+    [SerializeField] private string fallbackSingleFileName = "driving_data.csv"; // Legacy single-file fallback.
 
     [Header("Optional Filters")]
-    [SerializeField] private bool includeCollisionRows = true; // If false, rows with collisionFlag=1 are skipped
-    [SerializeField] private bool onlyUseHumanMode = false; // If true, only rows where mode=Human are used
+    [SerializeField] private bool includeCollisionRows = true; // False skips crash rows.
+    [SerializeField] private bool onlyUseHumanMode = false; // True keeps only human driving rows.
 
-    public List<TrainingSample> samples = new List<TrainingSample>(); // Stores all loaded samples
+    public List<TrainingSample> samples = new List<TrainingSample>(); // Parsed samples used for training.
 
     private const int LegacyColumnCount = 7;
     private const int MetadataColumnCount = 12;
@@ -37,12 +37,14 @@ public class CSVDataLoader : MonoBehaviour
         string assetsPath = Application.dataPath;
         List<string> filesToLoad = new List<string>();
 
+        // Collect session files first.
         if (loadSessionFiles)
         {
             filesToLoad.AddRange(Directory.GetFiles(assetsPath, sessionFilePattern, SearchOption.TopDirectoryOnly));
             filesToLoad.Sort();
         }
 
+        // Fall back to the old single file if needed.
         if (filesToLoad.Count == 0)
         {
             string fallbackPath = Path.Combine(assetsPath, fallbackSingleFileName);
@@ -60,6 +62,7 @@ public class CSVDataLoader : MonoBehaviour
 
         int totalRowsProcessed = 0;
 
+        // Parse every data row from every file.
         for (int fileIndex = 0; fileIndex < filesToLoad.Count; fileIndex++)
         {
             string filePath = filesToLoad[fileIndex];
@@ -81,6 +84,7 @@ public class CSVDataLoader : MonoBehaviour
 
                 string[] values = line.Split(',');
 
+                // Support old 7-column format.
                 if (values.Length == LegacyColumnCount)
                 {
                     if (TryParseLegacyRow(values, out TrainingSample sample))
@@ -92,6 +96,7 @@ public class CSVDataLoader : MonoBehaviour
                     continue;
                 }
 
+                // Support new 12-column format with metadata.
                 if (values.Length == MetadataColumnCount)
                 {
                     if (TryParseMetadataRow(values, out TrainingSample sampleWithMetadata))
@@ -117,6 +122,7 @@ public class CSVDataLoader : MonoBehaviour
         float[] inputs = new float[5];
         float[] outputs = new float[2];
 
+        // First 5 values are sensor inputs.
         for (int j = 0; j < 5; j++)
         {
             if (!float.TryParse(values[j], NumberStyles.Float, CultureInfo.InvariantCulture, out inputs[j]))
@@ -125,6 +131,7 @@ public class CSVDataLoader : MonoBehaviour
             }
         }
 
+        // Last 2 values are steer and throttle targets.
         for (int j = 0; j < 2; j++)
         {
             if (!float.TryParse(values[j + 5], NumberStyles.Float, CultureInfo.InvariantCulture, out outputs[j]))
@@ -144,6 +151,7 @@ public class CSVDataLoader : MonoBehaviour
         string mode = values[2].Trim();
         bool collision = values[3].Trim() == "1";
 
+        // Optional filters for cleaner training data.
         if (!includeCollisionRows && collision)
         {
             return false;
@@ -157,7 +165,7 @@ public class CSVDataLoader : MonoBehaviour
         float[] inputs = new float[5];
         float[] outputs = new float[2];
 
-        // Inputs remain track-agnostic sensors only (ignore metadata columns)
+        // Skip metadata columns and read only the 5 sensors.
         int sensorStartIndex = 5;
         for (int j = 0; j < 5; j++)
         {
