@@ -12,6 +12,7 @@ public class AIDriver : MonoBehaviour
 
     private void Start()
     {
+        // Starts in AI mode if this toggle is on.
         if (useAIOnStart)
         {
             EnableAI();
@@ -20,21 +21,25 @@ public class AIDriver : MonoBehaviour
 
     private void FixedUpdate()
     {
+        // Stop early if any required reference is missing.
         if (carController == null || carSensors == null || neuralTrainer == null)
         {
             return;
         }
 
+        // Only drive the car from the network while AI mode is active.
         if (carController.CurrentControlMode != CarController.ControlMode.AI)
         {
             return;
         }
 
+        // Wait until training has created a usable network.
         if (neuralTrainer.network == null)
         {
             return;
         }
 
+        // Packs the five sensor rays into the NN input array.
         float[] inputs = new float[5]
         {
             carSensors.front,
@@ -44,6 +49,7 @@ public class AIDriver : MonoBehaviour
             carSensors.right
         };
 
+        // Runs one forward pass to predict steering and throttle.
         float[] outputs = neuralTrainer.network.FeedForward(inputs);
 
         float predictedSteering = outputs[0];

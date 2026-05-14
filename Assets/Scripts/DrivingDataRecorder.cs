@@ -3,19 +3,19 @@ using System.IO;
 using System.Text;
 using UnityEngine;
 
-// Records sensor data + player inputs into a CSV dataset for training
+// Records sensor + driver input snapshots into CSV for training.
 public class DrivingDataRecorder : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private CarSensors carSensors;      // Access to current sensor values
-    [SerializeField] private CarController carController; // Access to player inputs
+    [SerializeField] private CarSensors carSensors;      // Live ray sensor values.
+    [SerializeField] private CarController carController; // Live steering/throttle values.
 
     [Header("Recording")]
-    [SerializeField] private bool recordOnPlay = false;   // Start recording automatically
-    [SerializeField] private KeyCode toggleRecordKey = KeyCode.R; // Key to toggle recording
-    [SerializeField] private float recordInterval = 0.1f; // Time between samples
-    [SerializeField] private bool writeOnlyWhenMoving = true; // Prevent recording when stationary
-    [SerializeField] private float minSpeedToRecord = 0.25f;  // Minimum speed required to record
+    [SerializeField] private bool recordOnPlay = false;   // Start capturing as soon as play begins.
+    [SerializeField] private KeyCode toggleRecordKey = KeyCode.R; // Keyboard toggle for recording.
+    [SerializeField] private float recordInterval = 0.1f; // Seconds between CSV rows.
+    [SerializeField] private bool writeOnlyWhenMoving = true; // Skip idle samples to reduce noise.
+    [SerializeField] private float minSpeedToRecord = 0.25f;  // Speed gate for writing rows.
 
     private const string SessionFilePrefix = "drive_session_";
     private const string SessionFileExtension = ".csv";
@@ -33,7 +33,7 @@ public class DrivingDataRecorder : MonoBehaviour
 
         File.WriteAllText(filePath, "time,speed,mode,collisionFlag,sessionId,front,frontLeft,left,frontRight,right,steer,throttle\n");
 
-        // Set initial recording state
+        // Applies the startup toggle.
         isRecording = recordOnPlay;
 
         Debug.Log($"CSV Path: {filePath}");
@@ -41,7 +41,7 @@ public class DrivingDataRecorder : MonoBehaviour
 
     private void Update()
     {
-        // Toggle recording on key press
+        // Press key once to start/stop capture.
         if (Input.GetKeyDown(toggleRecordKey))
         {
             isRecording = !isRecording;
@@ -51,22 +51,22 @@ public class DrivingDataRecorder : MonoBehaviour
 
     private void FixedUpdate()
     {
-        // Only record if enabled
+        // No file writes while recording is off.
         if (!isRecording)
         {
             return;
         }
 
-        // ignore samples when car is nearly stationary
+        // Skip tiny movement so the dataset stays useful.
         if (writeOnlyWhenMoving && Mathf.Abs(carController.CurrentSpeed) < minSpeedToRecord)
         {
             return;
         }
 
-        // Use fixed timestep for consistent sampling
+        // Uses fixed delta so sample timing stays consistent.
         recordTimer += Time.fixedDeltaTime;
 
-        // Record at defined interval
+        // Writes one row when interval is reached.
         if (recordTimer >= recordInterval)
         {
             recordTimer = 0f;
@@ -115,25 +115,25 @@ public class DrivingDataRecorder : MonoBehaviour
     {
         StringBuilder sb = new StringBuilder();
 
-        // Session metadata
+        // Writes metadata columns first.
         sb.Append(Time.time.ToString("F4", CultureInfo.InvariantCulture)).Append(",");
         sb.Append(carController.CurrentSpeed.ToString("F4", CultureInfo.InvariantCulture)).Append(",");
         sb.Append(carController.CurrentControlMode.ToString()).Append(",");
         sb.Append(collisionFlag ? "1" : "0").Append(",");
         sb.Append(sessionId).Append(",");
 
-        // Append sensor inputs (formatted to fixed decimal precision)
+        // Adds the five sensor inputs.
         sb.Append(carSensors.front.ToString("F4", CultureInfo.InvariantCulture)).Append(",");
         sb.Append(carSensors.frontLeft.ToString("F4", CultureInfo.InvariantCulture)).Append(",");
         sb.Append(carSensors.left.ToString("F4", CultureInfo.InvariantCulture)).Append(",");
         sb.Append(carSensors.frontRight.ToString("F4", CultureInfo.InvariantCulture)).Append(",");
         sb.Append(carSensors.right.ToString("F4", CultureInfo.InvariantCulture)).Append(",");
 
-        // Append player actions (outputs)
+        // Adds steering and throttle targets.
         sb.Append(carController.CurrentSteeringInput.ToString("F4", CultureInfo.InvariantCulture)).Append(",");
         sb.Append(carController.CurrentThrottleInput.ToString("F4", CultureInfo.InvariantCulture)).Append("\n");
 
-        // Write row to CSV without overwriting existing data
+        // Appends row to the end of the file.
         File.AppendAllText(filePath, sb.ToString());
     }
 }
